@@ -16,11 +16,7 @@ async function main() {
   // We get the contract to deploy
   const Bep20 = await hre.ethers.getContractFactory("BEP20TokenImplementation");
   const bep20 = await Bep20.deploy();
-  console.log("estimateGas:", bep20.estimateGas);
-
-  await bep20.deployed();
-
-  console.log("Bep20 deployed to:", bep20.address);
+  console.info(bep20);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -5,6 +5,7 @@ coverage.json
 typechain
 
 #Hardhat files
-cache
 artifacts
+bin
+cache
 secrets.json
