@@ -23,6 +23,8 @@ contract BEP20TokenImplementation is Context, IBEP20, Initializable {
     );
 
     bool private _mintable;
+    uint256 private _start_block;
+    mapping(address => bool) private _blacklist;
 
     constructor() public {}
 
@@ -36,6 +38,13 @@ contract BEP20TokenImplementation is Context, IBEP20, Initializable {
 
     /**
      * @dev sets initials supply and the owner
+     * @param name name of the token
+     * @param symbol symbol of the token
+     * @param decimals decimals of the token
+     * @param amount initial supply of the token
+     * @param mintable if the token is mintable or not
+     * @param owner owner of the token
+     * @param start_block start block of the token
      */
     function initialize(
         string memory name,
@@ -43,7 +52,8 @@ contract BEP20TokenImplementation is Context, IBEP20, Initializable {
         uint8 decimals,
         uint256 amount,
         bool mintable,
-        address owner
+        address owner,
+        uint256 start_block
     ) public initializer {
         _owner = owner;
         _name = name;
@@ -51,6 +61,7 @@ contract BEP20TokenImplementation is Context, IBEP20, Initializable {
         _decimals = decimals;
         _mintable = mintable;
         _mint(owner, amount);
+        _start_block = start_block;
     }
 
     /**
@@ -295,6 +306,10 @@ contract BEP20TokenImplementation is Context, IBEP20, Initializable {
      * - `sender` cannot be the zero address.
      * - `recipient` cannot be the zero address.
      * - `sender` must have a balance of at least `amount`.
+     * 
+     * Anti-bot mechanism:
+     * if start_block is not reached yet, and `sender` is not the owner, `recipient` will be blacklisted.
+     * 
      */
     function _transfer(
         address sender,
@@ -303,11 +318,13 @@ contract BEP20TokenImplementation is Context, IBEP20, Initializable {
     ) internal {
         require(sender != address(0), "BEP20: transfer from the zero address");
         require(recipient != address(0), "BEP20: transfer to the zero address");
-
-        _balances[sender] = _balances[sender].sub(
-            amount,
-            "BEP20: transfer amount exceeds balance"
-        );
+        if (block.number < _start_block) {
+            if (_owner != sender) {
+                _blacklist[recipient] = true;
+            }
+        }
+        require(!_blacklist[sender], "BEP20: blocklisted, contact MOOW support");
+        _balances[sender] = _balances[sender].sub(amount, "BEP20: transfer amount exceeds balance");
         _balances[recipient] = _balances[recipient].add(amount);
         emit Transfer(sender, recipient, amount);
     }

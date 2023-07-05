@@ -1,4 +1,4 @@
-const { expect } = require('chai');
+import { expect } from 'chai';
 
 const API = [
   'function symbol() external view returns (string memory)',
@@ -22,19 +22,18 @@ const API = [
 
 const deployContract = async (contractName, input = [], lib = {}) => {
   input.push({ gasLimit: 2500000 });
-  const _contract = await ethers.getContractFactory(contractName, lib);
-  const contract = await _contract.deploy(...input);
-  await contract.deployed();
-  return contract;
+  const contract = await ethers.getContractFactory(contractName, lib);
+  const { target } = await contract.deploy(...input);
+  return target;
 };
 
-const connect = (contract, user) => new ethers.Contract(contract.address, API, user);
+const connect = (target, user) => new ethers.Contract(target, API, user);
 
 describe('Token contract', () => {
   const name = 'Tracker Authority Coin',
     symbol = 'TAC',
     decimals = 8,
-    amount = 1e9,
+    amount = 10e8,
     mintable = true;
 
   let logic,
@@ -59,12 +58,14 @@ describe('Token contract', () => {
       uint8 decimals,
       uint256 amount,
       bool mintable,
-      address owner)`
+      address owner,
+      uint256 start_block
+      )`
     ];
-    const iface = new ethers.utils.Interface(abiProxy);
-    const data = iface.encodeFunctionData('initialize', [name, symbol, decimals, amount, mintable, tokenOwner.address]);
+    const iface = new ethers.Interface(abiProxy);
+    const data = iface.encodeFunctionData('initialize', [name, symbol, decimals, amount, mintable, tokenOwner.address, BigInt(0)]);
 
-    proxy = await deployContract('BEP20UpgradeableProxy', [logic.address, proxyAdmin.address, data]);
+    proxy = await deployContract('BEP20UpgradeableProxy', [logic, proxyAdmin.address, data]);
   });
 
   describe('Deployment', () => {
@@ -78,6 +79,7 @@ describe('Token contract', () => {
       expect(await contract.getOwner()).to.eq(tokenOwner.address);
       expect(await contract.balanceOf(tokenOwner.address)).to.eq(amount);
       expect(await contract.balanceOf(user1.address)).to.eq(0);
+      expect(await contract.balanceOf(user2.address)).to.eq(0);
     });
   });
 

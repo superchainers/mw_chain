@@ -1,11 +1,11 @@
 node_modules
+.vscode
 .env
 coverage
 coverage.json
 typechain
+typechain-types
 
-#Hardhat files
-artifacts
-bin
+# Hardhat files
 cache
-secrets.json
+artifacts

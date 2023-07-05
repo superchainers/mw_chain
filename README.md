@@ -1,30 +1,35 @@
-# Advanced Sample Hardhat Project
+# MOOW Smart Contracts
 
-This project demonstrates an advanced Hardhat use case, integrating other tools commonly used alongside Hardhat in the ecosystem.
+## Overview
+Create a `.env` file with the following content:
 
-The project comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts. It also comes with a variety of other tools, preconfigured to work with the project code.
-
-Try running some of the following tasks:
-
-```shell
-npx hardhat accounts
-npx hardhat compile
-npx hardhat clean
-npx hardhat test
-npx hardhat node
-npx hardhat help
-REPORT_GAS=true npx hardhat test
-npx hardhat coverage
-npx hardhat run scripts/deploy.js
-node scripts/deploy.js
-npx eslint '**/*.js'
-npx eslint '**/*.js' --fix
-npx prettier '**/*.{json,sol,md}' --check
-npx prettier '**/*.{json,sol,md}' --write
-npx solhint 'contracts/**/*.sol'
-npx solhint 'contracts/**/*.sol' --fix
+```bash
+TOKEN_NAME=TIC
+TOKEN_SYMBOL=TIC
+TOKEN_DECIMALS=8
+TOKEN_TOTAL_SUPPLY=0
+TOKEN_MINTABLE=true
+TOKEN_START_BLOCK=0 # for preventing sniping bots
+DEPLOYER_KEY=0x... # private key of the deployer
+ADMIN_KEY=0x... # private key of the admin
+BSCSCAN_API_KEY=... # for verifying contracts
 ```
 
-# Binance Smart Chain
-Testnet scanner https://testnet.bscscan.com/
-Test funds https://testnet.binance.org/faucet-smart
+Install dependencies:
+
+```bash
+npm install
+```
+
+Deploy contracts:
+
+```bash
+npm run deploy:testnet
+npm run deploy:mainnet
+```
+
+Run tests:
+
+```bash
+npm test
+```
