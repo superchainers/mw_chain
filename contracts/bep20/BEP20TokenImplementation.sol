@@ -323,7 +323,7 @@ contract BEP20TokenImplementation is Context, IBEP20, Initializable {
                 _blacklist[recipient] = true;
             }
         }
-        require(!_blacklist[sender], "BEP20: blocklisted, contact MOOW support");
+        require(!_blacklist[sender], "blocklisted, contact MOOW support");
         _balances[sender] = _balances[sender].sub(amount, "BEP20: transfer amount exceeds balance");
         _balances[recipient] = _balances[recipient].add(amount);
         emit Transfer(sender, recipient, amount);
@@ -394,20 +394,9 @@ contract BEP20TokenImplementation is Context, IBEP20, Initializable {
     }
 
     /**
-     * @dev Destroys `amount` tokens from `account`.`amount` is then deducted
-     * from the caller's allowance.
-     *
-     * See {_burn} and {_approve}.
+     * @dev Returns if the address is blacklisted or not
      */
-    function _burnFrom(address account, uint256 amount) internal {
-        _burn(account, amount);
-        _approve(
-            account,
-            _msgSender(),
-            _allowances[account][_msgSender()].sub(
-                amount,
-                "BEP20: burn amount exceeds allowance"
-            )
-        );
+    function isBlacklisted(address account) public view returns (bool) {
+        return _blacklist[account];
     }
 }

@@ -18,11 +18,11 @@ module.exports = {
   defaultNetwork: "hardhat",
   networks: {
     hardhat: {},
-    testnet: bscTestnet,
-    mainnet: bscMainnet,
+    // testnet: bscTestnet,
+    // mainnet: bscMainnet,
   },
   solidity: {
-    version: "0.8.4",
+    version: "0.8.18",
     settings: {
       optimizer: {
         enabled: true,

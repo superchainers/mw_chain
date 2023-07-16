@@ -1,22 +1,23 @@
 {
   "name": "mw_chain",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "MOOW Smart contracts",
   "type": "module",
   "author": "MOOW",
   "license": "UNLICENSED",
   "scripts": {
-    "test": "npx hardhat test",
     "compile": "npx hardhat compile",
     "deploy:testnet": "npx hardhat run scripts/deploy-bep20.js --network testnet",
-    "deploy:mainnet": "npx hardhat run scripts/deploy-bep20.js --network mainnet"
+    "deploy:mainnet": "npx hardhat run scripts/deploy-bep20.js --network mainnet",
+    "test": "npx hardhat test --network hardhat",
+    "test:coverage": "npx hardhat coverage --network hardhat"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-ethers": "3.0.3",
+    "@nomicfoundation/hardhat-ethers": "3.0.4",
     "@nomicfoundation/hardhat-toolbox": "3.0.0",
-    "@nomicfoundation/hardhat-verify": "1.0.3",
+    "@nomicfoundation/hardhat-verify": "1.0.4",
     "@openzeppelin/contracts": "4.9.2",
     "dotenv": "16.3.1",
-    "hardhat": "2.16.1"
+    "hardhat": "2.17.0"
   }
 }

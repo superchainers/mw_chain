@@ -66,3 +66,6 @@ Two events MUST be fired on any successful call to `transfer(...)` and `transfer
 
 - `Transfer(address indexed _from, address indexed _to, uint256 _value)`: MUST trigger when tokens are transferred, including zero-value transfers.
 - `Approval(address indexed _owner, address indexed _spender, uint256 _value)`: MUST trigger on any successful call
+
+### Deployment <a name="deployment"></a>
+To deploy the contract, you can use Hardhat. The framework provide a convenient way to deploy contracts to the BSC network.
