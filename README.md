@@ -39,13 +39,14 @@ The system includes comprehensive test suites that validate the behavior of the 
 
 ## Anti-bot Mechanism
 
-The anti-bot mechanism helps to prevent non-owner addresses from transferring tokens before a specified start block. If a non-owner address attempts to transfer tokens before the start block, they are added to a blacklist. However, the owner address is allowed to transfer tokens before the start block without being blacklisted.
+This project incorporates an anti-bot mechanism in its smart contract functions, aimed at preventing high volume transactions carried out by bots, which can lead to price manipulation or system instability.
 
-To achieve this, the `transfer` function is overridden to include an additional check. Before making a transfer, it verifies whether the caller is the owner or if the current block number is greater than or equal to the start block. If neither condition is met, the caller's address is added to the blacklist.
+The _transfer() function includes the anti-bot mechanism which imposes additional restrictions based on the block number and the sender of the transactions:
 
-All addresses on the blacklist are disallowed from making any further token transfers.
-
-This mechanism is especially useful in preventing bots from participating in the initial token distribution phase.
+If the current block number is less than a predefined starting block, the following conditions apply:
+The sender must not execute more than a certain number of transactions (_maxTxPerBlock) within the same block.
+The transaction amount must not exceed a predefined maximum transaction value (_maxTxValue).
+However, these restrictions do not apply to the owner of the contract, allowing the owner to conduct necessary operations for maintaining the contract.
 
 ## Contract Upgradeability
 
