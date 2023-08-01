@@ -164,7 +164,7 @@ describe("TAC token contract", () => {
 
       if (!mintable) {
         await expect(contract.mint(mintAmount)).to.be.revertedWith(
-          "this token is not mintable"
+          "BEP20: this token is not mintable"
         );
       }
     });

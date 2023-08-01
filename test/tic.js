@@ -207,15 +207,9 @@ describe("TIC token contract", () => {
 
       // user1 tries to transfer 100 tokens from the owner's account to user2's account
       contract = connect(proxy, user1);
-      try {
-        await contract.transferFrom(
-          tokenOwner.address,
-          user2.address,
-          transferAmount
-        );
-      } catch (error) {
-        expect(error.message).to.include("transfer amount exceeds allowance");
-      }
+      await expect(
+        contract.transferFrom(tokenOwner.address, user2.address, transferAmount)
+      ).to.be.revertedWith("BEP20: transfer amount exceeds allowance");
     });
   });
 
@@ -252,12 +246,7 @@ describe("TIC token contract", () => {
 
       // Check that tokenOwner can no longer transfer ownership
       contract = connect(proxy, tokenOwner);
-      try {
-        await contract.transferOwnership(user2.address);
-        throw new Error("tokenOwner should not be able to transfer ownership");
-      } catch (err) {
-        expect(err.message).to.include("Ownable: caller is not the owner");
-      }
+      await expect(contract.transferOwnership(user2.address)).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("Should renounce ownership", async () => {
@@ -271,17 +260,12 @@ describe("TIC token contract", () => {
 
       // Check that tokenOwner can no longer transfer ownership
       contract = connect(proxy, tokenOwner);
-      try {
-        await contract.transferOwnership(user1.address);
-        throw new Error("tokenOwner should not be able to transfer ownership");
-      } catch (err) {
-        expect(err.message).to.include("Ownable: caller is not the owner");
-      }
+      await expect(contract.transferOwnership(user1.address)).to.be.revertedWith("Ownable: caller is not the owner");
     });
   });
 
   describe("Burn Functionality", () => {
-    it("Should burn tokens from owner", async function () {
+    it("Should allow to burn tokens", async function () {
       let amount = 100n;
       let contract = connect(proxy, tokenOwner);
       let totalSupply = await contract.totalSupply();
@@ -299,16 +283,11 @@ describe("TIC token contract", () => {
       expect(await contract.totalSupply()).to.equal(totalSupply - amount);
     });
 
-    it("Should not allow non-owner to burn tokens", async function () {
+    it("Should not be allowed to burn more tokens than user1 has", async function () {
       let contract = connect(proxy, user1);
 
       // Attempt to burn 50 tokens from user1 (should fail)
-      try {
-        await contract.burn(50);
-        throw new Error("Expected an error but did not get one");
-      } catch (err) {
-        expect(err).to.be.an("Error");
-      }
+      await expect(contract.burn(50)).to.be.revertedWith("BEP20: burn amount exceeds balance");
     });
-  }); 
+  });
 });

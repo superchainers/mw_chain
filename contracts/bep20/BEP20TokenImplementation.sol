@@ -3,12 +3,9 @@ pragma solidity ^0.8.0;
 
 import "./IBEP20.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 contract BEP20TokenImplementation is Context, IBEP20, Initializable {
-    using SafeMath for uint256;
-
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
     uint256 private _totalSupply;
@@ -23,10 +20,11 @@ contract BEP20TokenImplementation is Context, IBEP20, Initializable {
     );
 
     bool private _mintable;
-    uint256 private _start_block;
-    mapping(address => bool) private _blacklist;
 
-    constructor() public {}
+    uint256 private _start_block;
+    mapping(uint256 => mapping(address => uint256)) private _txPerBlock;
+    uint private _maxTxPerBlock;
+    uint private _maxTxValue;
 
     /**
      * @dev Throws if called by any account other than the owner.
@@ -38,30 +36,32 @@ contract BEP20TokenImplementation is Context, IBEP20, Initializable {
 
     /**
      * @dev sets initials supply and the owner
-     * @param name name of the token
-     * @param symbol symbol of the token
-     * @param decimals decimals of the token
-     * @param amount initial supply of the token
-     * @param mintable if the token is mintable or not
+     * @param tokenName name of the token
+     * @param tokenSymbol symbol of the token
+     * @param tokenDecimals decimals of the token
+     * @param tokenAmount initial supply of the token
+     * @param tokenMintable if the token is mintable or not
      * @param owner owner of the token
      * @param start_block start block of the token
      */
     function initialize(
-        string memory name,
-        string memory symbol,
-        uint8 decimals,
-        uint256 amount,
-        bool mintable,
+        string memory tokenName,
+        string memory tokenSymbol,
+        uint8 tokenDecimals,
+        uint256 tokenAmount,
+        bool tokenMintable,
         address owner,
         uint256 start_block
-    ) public initializer {
+    ) external initializer {
         _owner = owner;
-        _name = name;
-        _symbol = symbol;
-        _decimals = decimals;
-        _mintable = mintable;
-        _mint(owner, amount);
+        _name = tokenName;
+        _symbol = tokenSymbol;
+        _decimals = tokenDecimals;
+        _mintable = tokenMintable;
+        _mint(owner, tokenAmount);
         _start_block = start_block;
+        _maxTxValue = 1000000000000;
+        _maxTxPerBlock = 1;
     }
 
     /**
@@ -71,7 +71,7 @@ contract BEP20TokenImplementation is Context, IBEP20, Initializable {
      * NOTE: Renouncing ownership will leave the contract without an owner,
      * thereby removing any functionality that is only available to the owner.
      */
-    function renounceOwnership() public onlyOwner {
+    function renounceOwnership() external onlyOwner {
         emit OwnershipTransferred(_owner, address(0));
         _owner = address(0);
     }
@@ -80,7 +80,7 @@ contract BEP20TokenImplementation is Context, IBEP20, Initializable {
      * @dev Transfers ownership of the contract to a new account (`newOwner`).
      * Can only be called by the current owner.
      */
-    function transferOwnership(address newOwner) public onlyOwner {
+    function transferOwnership(address newOwner) external onlyOwner {
         require(
             newOwner != address(0),
             "Ownable: new owner is the zero address"
@@ -205,14 +205,12 @@ contract BEP20TokenImplementation is Context, IBEP20, Initializable {
         address recipient,
         uint256 amount
     ) external override returns (bool) {
+        require(_allowances[sender][_msgSender()] >= amount, "BEP20: transfer amount exceeds allowance");
         _transfer(sender, recipient, amount);
         _approve(
             sender,
             _msgSender(),
-            _allowances[sender][_msgSender()].sub(
-                amount,
-                "BEP20: transfer amount exceeds allowance"
-            )
+            _allowances[sender][_msgSender()] - amount
         );
         return true;
     }
@@ -230,13 +228,13 @@ contract BEP20TokenImplementation is Context, IBEP20, Initializable {
      * - `spender` cannot be the zero address.
      */
     function increaseAllowance(address spender, uint256 addedValue)
-        public
+        external
         returns (bool)
     {
         _approve(
             _msgSender(),
             spender,
-            _allowances[_msgSender()][spender].add(addedValue)
+            _allowances[_msgSender()][spender] + addedValue
         );
         return true;
     }
@@ -256,17 +254,11 @@ contract BEP20TokenImplementation is Context, IBEP20, Initializable {
      * `subtractedValue`.
      */
     function decreaseAllowance(address spender, uint256 subtractedValue)
-        public
+        external
         returns (bool)
     {
-        _approve(
-            _msgSender(),
-            spender,
-            _allowances[_msgSender()][spender].sub(
-                subtractedValue,
-                "BEP20: decreased allowance below zero"
-            )
-        );
+        require(_allowances[_msgSender()][spender] >= subtractedValue, "BEP20: decreased allowance below zero");
+        _approve(_msgSender(), spender, _allowances[_msgSender()][spender] - subtractedValue);
         return true;
     }
 
@@ -279,8 +271,8 @@ contract BEP20TokenImplementation is Context, IBEP20, Initializable {
      * - `msg.sender` must be the token owner
      * - `_mintable` must be true
      */
-    function mint(uint256 amount) public onlyOwner returns (bool) {
-        require(_mintable, "this token is not mintable");
+    function mint(uint256 amount) external onlyOwner returns (bool) {
+        require(_mintable, "BEP20: this token is not mintable");
         _mint(_msgSender(), amount);
         return true;
     }
@@ -288,7 +280,7 @@ contract BEP20TokenImplementation is Context, IBEP20, Initializable {
     /**
      * @dev Burn `amount` tokens and decreasing the total supply.
      */
-    function burn(uint256 amount) public returns (bool) {
+    function burn(uint256 amount) external returns (bool) {
         _burn(_msgSender(), amount);
         return true;
     }
@@ -307,8 +299,10 @@ contract BEP20TokenImplementation is Context, IBEP20, Initializable {
      * - `recipient` cannot be the zero address.
      * - `sender` must have a balance of at least `amount`.
      * 
-     * Anti-bot mechanism:
-     * if start_block is not reached yet, and `sender` is not the owner, `recipient` will be blacklisted.
+     * Includes anti-bot mechanism that enforces transaction restrictions until a certain block (`_start_block`)
+     *  - The `sender` cannot execute more than `_maxTxPerBlock` transactions within the same block.
+     *  - The `amount` of tokens being transferred must not exceed `_maxTxValue`.
+     * These restrictions do not apply to the owner of the contract.
      * 
      */
     function _transfer(
@@ -318,14 +312,16 @@ contract BEP20TokenImplementation is Context, IBEP20, Initializable {
     ) internal {
         require(sender != address(0), "BEP20: transfer from the zero address");
         require(recipient != address(0), "BEP20: transfer to the zero address");
+        require(_balances[sender] >= amount, "BEP20: transfer amount exceeds balance");
         if (block.number < _start_block) {
-            if (_owner != sender) {
-                _blacklist[recipient] = true;
+            if (msg.sender != _owner) {
+                require(amount <= _maxTxValue, "Exceeded max transaction value");
+                require(_txPerBlock[block.number][msg.sender] < _maxTxPerBlock, "Exceeded max transactions per block");
+                _txPerBlock[block.number][msg.sender] += 1;
             }
         }
-        require(!_blacklist[sender], "blocklisted, contact MOOW support");
-        _balances[sender] = _balances[sender].sub(amount, "BEP20: transfer amount exceeds balance");
-        _balances[recipient] = _balances[recipient].add(amount);
+        _balances[sender] -= amount;
+        _balances[recipient] += amount;
         emit Transfer(sender, recipient, amount);
     }
 
@@ -341,8 +337,8 @@ contract BEP20TokenImplementation is Context, IBEP20, Initializable {
     function _mint(address account, uint256 amount) internal {
         require(account != address(0), "BEP20: mint to the zero address");
 
-        _totalSupply = _totalSupply.add(amount);
-        _balances[account] = _balances[account].add(amount);
+        _totalSupply += amount;
+        _balances[account] += amount;
         emit Transfer(address(0), account, amount);
     }
 
@@ -359,12 +355,9 @@ contract BEP20TokenImplementation is Context, IBEP20, Initializable {
      */
     function _burn(address account, uint256 amount) internal {
         require(account != address(0), "BEP20: burn from the zero address");
-
-        _balances[account] = _balances[account].sub(
-            amount,
-            "BEP20: burn amount exceeds balance"
-        );
-        _totalSupply = _totalSupply.sub(amount);
+        require(_balances[account] >= amount, "BEP20: burn amount exceeds balance");
+        _balances[account] -= amount;
+        _totalSupply -= amount;
         emit Transfer(account, address(0), amount);
     }
 
@@ -391,12 +384,5 @@ contract BEP20TokenImplementation is Context, IBEP20, Initializable {
 
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
-    }
-
-    /**
-     * @dev Returns if the address is blacklisted or not
-     */
-    function isBlacklisted(address account) public view returns (bool) {
-        return _blacklist[account];
     }
 }
